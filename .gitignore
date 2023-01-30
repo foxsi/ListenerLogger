@@ -1,0 +1,7 @@
+.vscode/
+build/
+*.DS_Store
+*.a
+*.out
+env/
+venv/
