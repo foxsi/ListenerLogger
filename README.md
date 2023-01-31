@@ -2,6 +2,16 @@
 
 A command-line application for logging incoming datagrams. Currently, only UDP is supported.
 
+## Getting started (for development)
+### For macOS
+The following takes place at the command prompt: `% `. Assuming you're starting from scratch, do this:
+1. If you recently updated macOS, run `% xcode-select --install`. This will give you git back after your update. This command will error (good!) if you already have the tools installed. 
+2. Do you have a package manager installed? You can get [homebrew here](https://brew.sh/) or [MacPorts here](https://www.macports.org/).
+3. Use your package manager to install cmake. For example, `% brew install cmake`.
+4. Use your package manager to install Boost. For example, `% brew install boost`.
+5. In a folder you want to keep this project, `% git clone https://github.com/foxsi/ListenerLogger.git`. 
+6. Now comes the tricky part. You may use some IDE (VS code, Eclipse, Xcode, whatever) for development. You need to show that thing where the Boost library lives, so that when you try to compile it understands. In VScode, I have a setting called `includePath` that will get searched for libraries when I try to build. Anyways, for homebrew at least, Boost is located by default at `/opt/homebrew/Cellar/boost/<version number>/include`. So you should tell your IDE about that path (or the equivalent for your system).
+
 ## Usage
 Try:
 ```
@@ -13,10 +23,10 @@ to see all the options. BUT I WILL WRITE MORE INFO HERE LATER!
 
 
 ## Dependencies
-- cmake
-- boost/asio
-- boost/program_options
-- boost/date_time
+- [cmake](https://cmake.org/cmake/help/latest/)
+- [boost/asio](https://www.boost.org/doc/libs/1_81_0/doc/html/boost_asio.html)
+- [boost/program_options](https://www.boost.org/doc/libs/1_81_0/doc/html/program_options.html)
+- [boost/date_time](https://www.boost.org/doc/libs/1_81_0/doc/html/date_time.html)
 
 ## Flow
 When called, things happen in this order:
