@@ -1,4 +1,4 @@
-#include "ListenerLogger.cpp"
+#include "ListenerLogger.h"
 
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
@@ -12,24 +12,28 @@ int main(int argc, char* argv[]) {
 
     boost::program_options::options_description generic("Permitted options");
     generic.add_options()
-        ("version",     "print version string")
-        ("verbose,v",   "print version string")
-        ("help,h",      "send help message")
-        ("summary,s",   "print summary stats")
-        ("timeout",     "set logging timeout in seconds")
-        ("numpackets,n", "set max number of packets to log")
-        ("config,c",    boost::program_options::value<std::vector<std::string>>(), "config file")
-        ("file,f",    boost::program_options::value<std::vector<std::string>>(), "output file")
-        ("line,l",      "include line numbers in log file")
-        ("timestamp, t", "include timestamp in log file")
+        ("version",         "print version string")
+        ("verbose,v",       "print version string")
+        ("help,h",          "send help message")
+        ("summary,s",       "print summary stats")
+        ("ip,I",            boost::program_options::value<std::string>(),   "IP address to log from")
+        ("port,p",          boost::program_options::value<unsigned short>(),"port to log from")
+        ("timeout,T",       boost::program_options::value<unsigned long>(), "set logging timeout in seconds")
+        ("numpacks,n",    boost::program_options::value<std::size_t>(), "set max number of packets to log")
+        ("config,c",        boost::program_options::value<std::string>(), "config file")
+        ("file,f",          boost::program_options::value<std::string>(), "output file")
+        ("line,l",          boost::program_options::value<std::string>(), "include line numbers in log file")
+        ("timestamp,t",     boost::program_options::value<std::string>(), "include timestamp in log file")
         ;
     
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).options(generic).run(), vm);
     po::notify(vm);
 
+    boost::asio::io_context io_context;
+
     // FIX THE INITIALIZER
-    // UDPListenerLogger UDPLL = UDPListenerLogger();
+    UDPListenerLogger UDPLL = UDPListenerLogger(io_context, vm);
 
     // if (vm.count("help")) {
     //     std::cout << "sorry, can't help you\n";
@@ -49,6 +53,5 @@ int main(int argc, char* argv[]) {
     //     std::cout << "btw, found " << std::to_string(argc) << " arguments\n";
     //     // return 0;
     // }
-
     return 0;
 }

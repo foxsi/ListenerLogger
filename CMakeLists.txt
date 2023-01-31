@@ -12,7 +12,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 # use Boost
-find_package(Boost 1.55 REQUIRED COMPONENTS program_options)
+find_package(Boost 1.55 REQUIRED COMPONENTS program_options date_time)
 include_directories( ${Boost_INCLUDE_DIRS} )
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
@@ -31,7 +31,7 @@ target_include_directories(
     PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Will need to add more libs:
+# Link boost:
 target_link_libraries(etherlogger PRIVATE ${Boost_LIBRARIES})
 
 
