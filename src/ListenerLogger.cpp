@@ -3,14 +3,22 @@
 
 #include <vector>
 #include <sstream>
+#include <stdexcept>
+
 // #include <boost/date_time/posix_time/posix_time.hpp>
 
 UDPListenerLogger::UDPListenerLogger(boost::asio::io_context& io_context, boost::program_options::variables_map vm): socket_(io_context) {
     
     // configure object based on variables_map
-    configure(vm, io_context);
+    UDPListenerLogger::configure(vm, io_context);
         // inside, opens file_ and tries to bind to socket_ constructed from address and port
     
+    packet_delimiter = "\n";
+    packets_received_ = 0;
+    packets_written_ = 0;
+
+    UDPListenerLogger::receive();
+
     // do_logging();
 }
 
@@ -18,9 +26,12 @@ UDPListenerLogger::~UDPListenerLogger() {
     // generate summary statistics, if requested
     if(do_summary){
         // maybe read back the file? get stats
+        std::cout << "\nSummary:\n";
+        std::cout << "\treceived " << std::to_string(packets_received_) << " packets\n";
+        std::cout << "\twrote " << std::to_string(packets_written_) << " packets\n\n";
 
     } else {
-        std::cout<<"all done\n";
+        // std::cout << "all done\n";
     }
     
     // close file, if it was opened in the first place
@@ -30,7 +41,7 @@ UDPListenerLogger::~UDPListenerLogger() {
     } else {
         print_verbose_("file never opened, exiting\n");
     }
-    exit(0);
+    // throw "destructor finished";
 }
 
 void UDPListenerLogger::configure(boost::program_options::variables_map vm, boost::asio::io_context& io_context) {
@@ -40,14 +51,14 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
     if(vm.count("help")){
         // cout stuff
         std::cout << HELP_MESSAGE;
-        exit(0);
+        throw "got help, ending";
     }
     if(vm.count("version")){
         std::string version = std::to_string(VERSION_MAJOR) 
             + "." + std::to_string(VERSION_MINOR)
             + "." + std::to_string(VERSION_REVISION);
         std::cout << version + "\n";
-        exit(0);
+        throw "got version, ending";
     }
     if(vm.count("verbose")){
         do_verbose = true;
@@ -80,8 +91,8 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         socket_.open(boost::asio::ip::udp::v4());
         socket_.bind(sender_endpoint_);
     } catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << "\n";
-        exit(1);
+        // std::cerr << "Exception: " << e.what() << "\n";
+        throw e.what();
     }
 
     if(vm.count("file")){
@@ -121,7 +132,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         print_verbose_("successfully opened file\n");
     } else {
         print_verbose_("failed to open file! Ending.\n");
-        exit(1);
+        throw "couldn't open file";
     }
 
     // more CLI options:
@@ -134,9 +145,9 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
     if(vm.count("numpacks")){
         // similar thing to timeout
         max_packets = vm["numpacks"].as<std::size_t>();
-        print_verbose_("will end long after ");
+        print_verbose_("will end logging after ");
         print_verbose_(std::to_string(max_packets));
-        print_verbose_(" seconds\n");
+        print_verbose_(" packets received \n");
     }
     if(vm.count("line")){
         do_packetnum = true;
@@ -164,14 +175,54 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
     packet_delimiter = "\n";
 }
 
-// std::wstring format_time_(boost::posix_time::ptime now) {
-//     static std::locale loc(std::wcout.getloc(), new boost::posix_time::wtime_facet(L"%Y-%m-%d_%H-%M-%S"));
+int UDPListenerLogger::do_logging() {
+    while (packets_received_ <= max_packets) {
+        receive();
+        write();
+    }
+    return 0;
+}
 
-//     std::basic_stringstream<wchar_t> wss;
-//     wss.imbue(loc);
-//     wss << now;
-//     return wss.str();
-// }
+void UDPListenerLogger::receive() {
+    socket_.async_receive_from(boost::asio::buffer(last_data_, BUFF_SIZE), sender_endpoint_, [this](boost::system::error_code ec, std::size_t bytes_received) {
+        if (!ec && bytes_received > 0) {
+            ++packets_received_;
+            last_data_size_ = bytes_received;
+            print_verbose_("got a packet of length " + std::to_string(last_data_size_) + "\n");
+            write();
+            if (packets_received_ >= max_packets) {
+                throw "reached max packets";
+            }
+        } else {
+            receive();
+        }
+    });
+}
+
+void UDPListenerLogger::write() {
+    // write to file
+    // if(do_packetnum) {
+    //     if(do_timestamp) {
+    //         file_ << "timestamp??" << time_delimiter << std::to_string(packets_received_) << packet_delimiter << last_data_;
+    //     } else {
+    //         file_ << std::to_string(packets_received_) << packet_delimiter << last_data_;
+    //     }
+    // } else {
+    //     if(do_timestamp) {
+    //         file_ << "timestamp??" << time_delimiter << last_data_;
+    //     } else {
+    //         file_ << last_data_;
+    //     }
+    // }
+    // file_ << packet_delimiter;
+
+    file_.write(last_data_, last_data_size_);
+    memset(last_data_, 0, BUFF_SIZE);
+    
+    ++packets_written_;
+    print_verbose_("wrote a packet\n");
+    receive();
+}
 
 void UDPListenerLogger::print_verbose_(std::string text) {
     if(do_verbose) {

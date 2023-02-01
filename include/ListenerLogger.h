@@ -58,8 +58,11 @@ class UDPListenerLogger{
         boost::asio::ip::udp::socket socket_;
         boost::asio::ip::udp::endpoint sender_endpoint_;
         char last_data_[BUFF_SIZE];
+        std::size_t last_data_size_;
+
+        unsigned long packets_received_;
+        unsigned long packets_written_;
         
-        // std::string format_time_(boost::posix_time::ptime now);
         void print_verbose_(std::string text);
 
 };
