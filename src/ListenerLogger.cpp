@@ -251,11 +251,11 @@ void UDPListenerLogger::write() {
 }
 
 void UDPListenerLogger::send(const char* message) {
-    print_verbose_("trying to send to remote\n");
     local_socket_.send_to(
         boost::asio::buffer(message, std::strlen(message)), 
         remote_endpoint_
     );
+    print_verbose_("sent startup message to remote\n");
 }
 
 void UDPListenerLogger::print_verbose_(std::string text) {

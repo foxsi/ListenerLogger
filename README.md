@@ -5,7 +5,7 @@ A command-line application for logging incoming datagrams. Currently, only UDP i
 ## Usage
 Try:
 ```
-$ listenerlogger --help
+% ./listenerlogger --help
 ```
 to see all the options. BUT I WILL WRITE MORE INFO HERE LATER!
 
@@ -40,6 +40,19 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 ```
 % ./bin/listenerlogger --<options> [arguments]
 ```
+
+9. If you don't like typing in so many arguments every time you run, you can also run like this:
+
+```
+% ./bin/listenerlogger --config path/to/config/file
+```
+
+where the config file (like [this one](https://github.com/foxsi/ListenerLogger/blob/main/sample_config.cfg)) stores values of each argument you want to set. So you can put things like:
+```
+verbose=true
+file=my_log_file.log
+```
+to turn verbose output on and set the path to the output log file.
 
 ## Flow
 When called, things happen in this order:

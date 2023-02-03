@@ -29,8 +29,9 @@ class UDPListenerLogger{
         void receive();
         void write();
         
-        // unimplemented:
         void send(const char* message);
+        
+        // unimplemented:
         void read(char* buffer);
 
         void configure(
