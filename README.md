@@ -31,13 +31,7 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 
 ```
 % cd build
-```
-
-```
 % cmake ..
-```
-
-```
 % make
 ````
 
