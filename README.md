@@ -27,6 +27,25 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 4. Use your package manager to install Boost. For example, `% brew install boost`.
 5. In a folder you want to keep this project, `% git clone https://github.com/foxsi/ListenerLogger.git`. 
 6. Now comes the tricky part. You may use some IDE (VS code, Eclipse, Xcode, whatever) for development. You need to show that thing where the Boost library lives, so that when you try to compile it understands. In VScode, I have a setting called `includePath` that will get searched for libraries when I try to build. Anyways, for homebrew at least, Boost is located by default at `/opt/homebrew/Cellar/boost/<version number>/include`. So you should tell your IDE about that path (or the equivalent for your system).
+7. To build an executable, make a folder called `build` inside ListenerLogger (the downloaded git repository). Then, to build the executable inside `ListenerLogger/bin` do: 
+
+```
+% cd build
+```
+
+```
+% cmake ..
+```
+
+```
+% make
+````
+
+8. Now you can run the executable (from the folder `ListenerLogger`) with
+
+```
+% ./bin/listenerlogger --<options> [arguments]
+```
 
 ## Flow
 When called, things happen in this order:
