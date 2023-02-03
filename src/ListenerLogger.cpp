@@ -4,10 +4,11 @@
 #include <vector>
 #include <sstream>
 #include <stdexcept>
+#include <boost/asio/buffer.hpp>
 
 // #include <boost/date_time/posix_time/posix_time.hpp>
 
-UDPListenerLogger::UDPListenerLogger(boost::asio::io_context& io_context, boost::program_options::variables_map vm): socket_(io_context) {
+UDPListenerLogger::UDPListenerLogger(boost::asio::io_context& io_context, boost::program_options::variables_map vm): local_socket_(io_context) {
     
     // configure object based on variables_map
     UDPListenerLogger::configure(vm, io_context);
@@ -16,6 +17,11 @@ UDPListenerLogger::UDPListenerLogger(boost::asio::io_context& io_context, boost:
     packet_delimiter = "\n";
     packets_received_ = 0;
     packets_written_ = 0;
+
+    if(do_startup_message) {
+        print_verbose_("sending startup message\n");
+        UDPListenerLogger::send(startup_message.c_str());
+    }
 
     UDPListenerLogger::receive();
 
@@ -66,33 +72,62 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
     }
 
     std::string ip;
-    if(vm.count("ip")){
-        ip = vm["ip"].as<std::string>();
-        print_verbose_("\nconnecting to IP address " + ip + "\n");
+    if(vm.count("local-ip")){
+        ip = vm["local-ip"].as<std::string>();
+        print_verbose_("\nconnecting to local IP address " + ip + "\n");
     } else {
         ip = DEFAULT_IP;
-        std::cout << "\nno IP input, using default: " + DEFAULT_IP + "\n";
+        std::cout << "\nno local IP input, using default: " + DEFAULT_IP + "\n";
     }
     unsigned short port;
-    if(vm.count("port")){
-        port = vm["port"].as<unsigned short>();
-        print_verbose_("connecting to port " + std::to_string(port) + "\n\n");
+    if(vm.count("local-port")){
+        port = vm["local-port"].as<unsigned short>();
+        print_verbose_("connecting to local port " + std::to_string(port) + "\n\n");
     } else {
         port = DEFAULT_PORT;
-        std::cout << "no port number input, using default: " + std::to_string(DEFAULT_PORT) + "\n\n";
+        std::cout << "no local port number input, using default: " + std::to_string(DEFAULT_PORT) + "\n\n";
     }
 
     // try to open a socket to this local IP/port and bind to it
-    address_ = boost::asio::ip::make_address(ip);
-    sender_endpoint_ = boost::asio::ip::udp::endpoint(address_, port);
-    // socket_ = boost::asio::ip::udp::socket(io_context, sender_endpoint_);
+    local_address_ = boost::asio::ip::make_address(ip);
+    local_port_ = port;
+    local_endpoint_ = boost::asio::ip::udp::endpoint(local_address_, local_port_);
     
     try {
-        socket_.open(boost::asio::ip::udp::v4());
-        socket_.bind(sender_endpoint_);
+        local_socket_.open(boost::asio::ip::udp::v4());
+        local_socket_.bind(local_endpoint_);
     } catch (std::exception& e) {
         // std::cerr << "Exception: " << e.what() << "\n";
-        throw e.what();
+        // throw e.what();
+        throw "couldn't open or bind local socket";
+    }
+
+    if(vm.count("message")) {
+        do_startup_message = true;
+        startup_message = vm["message"].as<std::string>();
+
+        if(vm.count("remote-ip")){
+            ip = vm["remote-ip"].as<std::string>();
+            print_verbose_("\nconnecting to remote IP address " + ip + "\n");
+        } else {
+            ip = DEFAULT_IP;
+            std::cout << "\nno remote IP remote, using default: " + DEFAULT_IP + "\n";
+        }
+        unsigned short port;
+        if(vm.count("remote-port")){
+            port = vm["remote-port"].as<unsigned short>();
+            print_verbose_("connecting to remote port " + std::to_string(port) + "\n\n");
+        } else {
+            port = DEFAULT_PORT;
+            std::cout << "no remote port number input, using default: " + std::to_string(DEFAULT_PORT) + "\n\n";
+        }
+
+        // create remote endpoint to send to
+        remote_address_ = boost::asio::ip::make_address(ip);
+        remote_port_ = port;
+        remote_endpoint_ = boost::asio::ip::udp::endpoint(remote_address_, remote_port_);
+    } else {
+        do_startup_message = false;
     }
 
     if(vm.count("file")){
@@ -184,11 +219,11 @@ int UDPListenerLogger::do_logging() {
 }
 
 void UDPListenerLogger::receive() {
-    socket_.async_receive_from(boost::asio::buffer(last_data_, BUFF_SIZE), sender_endpoint_, [this](boost::system::error_code ec, std::size_t bytes_received) {
+    local_socket_.async_receive_from(boost::asio::buffer(last_data_received_, BUFF_SIZE), local_endpoint_, [this](boost::system::error_code ec, std::size_t bytes_received) {
         if (!ec && bytes_received > 0) {
             ++packets_received_;
-            last_data_size_ = bytes_received;
-            print_verbose_("got a packet of length " + std::to_string(last_data_size_) + "\n");
+            last_data_received_size_ = bytes_received;
+            print_verbose_("got a packet of length " + std::to_string(last_data_received_size_) + "\n");
             write();
             if (packets_received_ >= max_packets) {
                 throw "reached max packets";
@@ -200,28 +235,21 @@ void UDPListenerLogger::receive() {
 }
 
 void UDPListenerLogger::write() {
-    // write to file
-    // if(do_packetnum) {
-    //     if(do_timestamp) {
-    //         file_ << "timestamp??" << time_delimiter << std::to_string(packets_received_) << packet_delimiter << last_data_;
-    //     } else {
-    //         file_ << std::to_string(packets_received_) << packet_delimiter << last_data_;
-    //     }
-    // } else {
-    //     if(do_timestamp) {
-    //         file_ << "timestamp??" << time_delimiter << last_data_;
-    //     } else {
-    //         file_ << last_data_;
-    //     }
-    // }
-    // file_ << packet_delimiter;
 
-    file_.write(last_data_, last_data_size_);
-    memset(last_data_, 0, BUFF_SIZE);
+    file_.write(last_data_received_, last_data_received_size_);
+    memset(last_data_received_, 0, BUFF_SIZE);
     
     ++packets_written_;
     print_verbose_("wrote a packet\n");
     receive();
+}
+
+void UDPListenerLogger::send(const char* message) {
+    print_verbose_("trying to send to remote\n");
+    local_socket_.send_to(
+        boost::asio::buffer(message, std::strlen(message)), 
+        remote_endpoint_
+    );
 }
 
 void UDPListenerLogger::print_verbose_(std::string text) {
