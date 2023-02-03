@@ -25,38 +25,11 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ListenerLogger.cpp)
 
 # Build the target "etherlogger" using source files
-add_executable(etherlogger ${SOURCES})
+add_executable(listenerlogger ${SOURCES})
 target_include_directories(
-    etherlogger 
+    listenerlogger 
     PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Link boost:
-target_link_libraries(etherlogger PRIVATE ${Boost_LIBRARIES})
-
-
-# Force use pthreads (for Boost/asio)
-# set(THREADS_PREFER_PTHREAD_FLAG ON)
-# find_package(Threads REQUIRED)
-
-# message(STATUS "CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
-
-# # Boost library
-
-# find_package(Boost 1.50 REQUIRED COMPONENTS filesystem)
-# if(Boost_FOUND)
-#     message(STATUS "Boost version: ${Boost_VERSION}")
-    
-#     # Check if Boost version newer than CMake, or if CMake is too old:
-#     if(NOT TARGET Boost::filesystem)
-#         add_library(Boost::filesystem IMPORTED INTERFACE)
-#         set_property(TARGET Boost::filesystem PROPERTY
-#             INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
-#         set_property(TARGET Boost::filesystem PROPERTY
-#             INTERFACE_LINK_LIBRARIES ${Boost_LIBRARIES})
-#     endif()
-
-#     target_link_libraries(etherlogger PUBLIC Boost::filesystem)
-# elseif(NOT Boost_FOUND)
-#     error("Boost not found.")
-# endif()
+target_link_libraries(listenerlogger PRIVATE ${Boost_LIBRARIES})
