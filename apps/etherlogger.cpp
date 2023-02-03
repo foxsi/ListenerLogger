@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     
     try {
         // start the Logger object
-        UDPListenerLogger UDPLL = UDPListenerLogger(io_context, vm);
+        UDPListenerLogger UDPLL = UDPListenerLogger(generic, vm, io_context);
         // start listening for UDP packets
         io_context.run();
 

@@ -17,8 +17,9 @@ extern short SENDER_PORT;
 class UDPListenerLogger{
     public:
         UDPListenerLogger(
-            boost::asio::io_context& io_context, 
-            boost::program_options::variables_map vm
+            boost::program_options::options_description desc,
+            boost::program_options::variables_map vm,
+            boost::asio::io_context& io_context
         );
         
         ~UDPListenerLogger();
@@ -32,7 +33,11 @@ class UDPListenerLogger{
         void send(const char* message);
         void read(char* buffer);
 
-        void configure(boost::program_options::variables_map vm, boost::asio::io_context& io_context);
+        void configure(
+            boost::program_options::options_description desc,
+            boost::program_options::variables_map vm, 
+            boost::asio::io_context& io_context
+        );
 
         bool do_verbose;                                    // cout verbose status
         bool do_startup_message;                            // send a packet to remote_endpoint_ on startup

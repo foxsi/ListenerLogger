@@ -5,13 +5,14 @@
 #include <sstream>
 #include <stdexcept>
 #include <boost/asio/buffer.hpp>
+#include <boost/program_options/parsers.hpp>
 
 // #include <boost/date_time/posix_time/posix_time.hpp>
 
-UDPListenerLogger::UDPListenerLogger(boost::asio::io_context& io_context, boost::program_options::variables_map vm): local_socket_(io_context) {
+UDPListenerLogger::UDPListenerLogger(boost::program_options::options_description desc, boost::program_options::variables_map vm, boost::asio::io_context& io_context): local_socket_(io_context) {
     
     // configure object based on variables_map
-    UDPListenerLogger::configure(vm, io_context);
+    UDPListenerLogger::configure(desc, vm, io_context);
         // inside, opens file_ and tries to bind to socket_ constructed from address and port
     
     packet_delimiter = "\n";
@@ -50,29 +51,34 @@ UDPListenerLogger::~UDPListenerLogger() {
     // throw "destructor finished";
 }
 
-void UDPListenerLogger::configure(boost::program_options::variables_map vm, boost::asio::io_context& io_context) {
-     // notify vm just in case:
-     boost::program_options::notify(vm);
+void UDPListenerLogger::configure(boost::program_options::options_description desc, boost::program_options::variables_map vm, boost::asio::io_context& io_context) {
 
-    if(vm.count("help")){
+    if(vm.count("config")) {
+        print_verbose_("found config file\n");
+        std::string config_filename = vm["config"].as<std::string>();
+        boost::program_options::store(boost::program_options::parse_config_file(config_filename.c_str(), desc), vm);
+    }
+    boost::program_options::notify(vm);
+
+    if(vm.count("help")) {
         // cout stuff
         std::cout << HELP_MESSAGE;
         throw "got help, ending";
     }
-    if(vm.count("version")){
+    if(vm.count("version")) {
         std::string version = std::to_string(VERSION_MAJOR) 
             + "." + std::to_string(VERSION_MINOR)
             + "." + std::to_string(VERSION_REVISION);
         std::cout << version + "\n";
         throw "got version, ending";
     }
-    if(vm.count("verbose")){
+    if(vm.count("verbose")) {
         do_verbose = true;
         print_verbose_("verbose output on\n");
     }
 
     std::string ip;
-    if(vm.count("local-ip")){
+    if(vm.count("local-ip")) {
         ip = vm["local-ip"].as<std::string>();
         print_verbose_("\nconnecting to local IP address " + ip + "\n");
     } else {
@@ -80,7 +86,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         std::cout << "\nno local IP input, using default: " + DEFAULT_IP + "\n";
     }
     unsigned short port;
-    if(vm.count("local-port")){
+    if(vm.count("local-port")) {
         port = vm["local-port"].as<unsigned short>();
         print_verbose_("connecting to local port " + std::to_string(port) + "\n\n");
     } else {
@@ -106,7 +112,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         do_startup_message = true;
         startup_message = vm["message"].as<std::string>();
 
-        if(vm.count("remote-ip")){
+        if(vm.count("remote-ip")) {
             ip = vm["remote-ip"].as<std::string>();
             print_verbose_("\nconnecting to remote IP address " + ip + "\n");
         } else {
@@ -114,7 +120,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
             std::cout << "\nno remote IP remote, using default: " + DEFAULT_IP + "\n";
         }
         unsigned short port;
-        if(vm.count("remote-port")){
+        if(vm.count("remote-port")) {
             port = vm["remote-port"].as<unsigned short>();
             print_verbose_("connecting to remote port " + std::to_string(port) + "\n\n");
         } else {
@@ -130,7 +136,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         do_startup_message = false;
     }
 
-    if(vm.count("file")){
+    if(vm.count("file")) {
         filename = vm["file"].as<std::string>();
     } else {
         // make a new file, name it
@@ -171,27 +177,27 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
     }
 
     // more CLI options:
-    if(vm.count("timeout")){
+    if(vm.count("timeout")) {
         timeout = vm["timeout"].as<unsigned long>();
         print_verbose_("will timeout after ");
         print_verbose_(std::to_string(timeout));
         print_verbose_(" seconds\n");
     }
-    if(vm.count("numpacks")){
+    if(vm.count("numpacks")) {
         // similar thing to timeout
         max_packets = vm["numpacks"].as<std::size_t>();
         print_verbose_("will end logging after ");
         print_verbose_(std::to_string(max_packets));
         print_verbose_(" packets received \n");
     }
-    if(vm.count("line")){
+    if(vm.count("line")) {
         do_packetnum = true;
         num_delimiter = vm["line"].as<std::string>();
         print_verbose_("logging with line numbers on\n");
     } else {
         do_packetnum = false;
     }
-    if(vm.count("timestamp")){
+    if(vm.count("timestamp")) {
         do_timestamp = true;
         time_delimiter = vm["timestamp"].as<std::string>();
         print_verbose_("logging with time stamping on\n");
@@ -199,7 +205,7 @@ void UDPListenerLogger::configure(boost::program_options::variables_map vm, boos
         do_timestamp = false;
     }
 
-    if(vm.count("summary")){
+    if(vm.count("summary")) {
         do_summary = true;
         print_verbose_("will print a summary after\n");
     } else {
