@@ -5,7 +5,7 @@ A command-line application for logging incoming datagrams. Currently, only UDP i
 ## Usage
 Try:
 ```
-$ etherlogger --help
+$ listenerlogger --help
 ```
 to see all the options. BUT I WILL WRITE MORE INFO HERE LATER!
 
