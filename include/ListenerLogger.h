@@ -58,6 +58,8 @@ class UDPListenerLogger{
     private:
         std::ofstream file_;
         bool appending_;
+        char last_data_received_[BUFF_SIZE];
+        std::size_t last_data_received_size_;
 
         boost::asio::ip::address local_address_;
         short local_port_;
@@ -66,15 +68,16 @@ class UDPListenerLogger{
         short remote_port_;
 
         boost::asio::ip::udp::endpoint remote_endpoint_;
-
         boost::asio::ip::udp::endpoint local_endpoint_;
         boost::asio::ip::udp::socket local_socket_;
 
-        char last_data_received_[BUFF_SIZE];
-        std::size_t last_data_received_size_;
-
         unsigned long packets_received_;
         unsigned long packets_written_;
+
+        unsigned long bytes_received_;
+
+        boost::posix_time::ptime start_time_;
+        boost::posix_time::ptime end_time_;
         
         void print_verbose_(std::string text);
 

@@ -18,24 +18,30 @@ UDPListenerLogger::UDPListenerLogger(boost::program_options::options_description
     packet_delimiter = "\n";
     packets_received_ = 0;
     packets_written_ = 0;
+    bytes_received_ = 0;
 
     if(do_startup_message) {
         print_verbose_("sending startup message\n");
         UDPListenerLogger::send(startup_message.c_str());
     }
 
+    start_time_ = boost::posix_time::microsec_clock::local_time();
     UDPListenerLogger::receive();
 
     // do_logging();
 }
 
 UDPListenerLogger::~UDPListenerLogger() {
+    end_time_ = boost::posix_time::microsec_clock::local_time();
+    std::cout << "collected for " << (end_time_ - start_time_).total_seconds() << " seconds\n";
     // generate summary statistics, if requested
     if(do_summary){
         // maybe read back the file? get stats
         std::cout << "\nSummary:\n";
         std::cout << "\treceived " << std::to_string(packets_received_) << " packets\n";
-        std::cout << "\twrote " << std::to_string(packets_written_) << " packets\n\n";
+        std::cout << "\twrote " << std::to_string(packets_written_) << " packets\n";
+        std::cout << "\tcollected for " << (end_time_ - start_time_).total_seconds() << " seconds\n";
+        std::cout << "\taverage datarate: " << 8*bytes_received_/(end_time_ - start_time_).total_microseconds() << "Mbps\n\n";
 
     } else {
         // std::cout << "all done\n";
@@ -182,6 +188,8 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         print_verbose_("will timeout after ");
         print_verbose_(std::to_string(timeout));
         print_verbose_(" seconds\n");
+    } else {
+        timeout = 0;
     }
     if(vm.count("numpacks")) {
         // similar thing to timeout
@@ -189,6 +197,8 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         print_verbose_("will end logging after ");
         print_verbose_(std::to_string(max_packets));
         print_verbose_(" packets received \n");
+    } else {
+        max_packets = 0;
     }
     if(vm.count("line")) {
         do_packetnum = true;
@@ -228,11 +238,16 @@ void UDPListenerLogger::receive() {
     local_socket_.async_receive_from(boost::asio::buffer(last_data_received_, BUFF_SIZE), local_endpoint_, [this](boost::system::error_code ec, std::size_t bytes_received) {
         if (!ec && bytes_received > 0) {
             ++packets_received_;
+            bytes_received_ += bytes_received;
             last_data_received_size_ = bytes_received;
             print_verbose_("got a packet of length " + std::to_string(last_data_received_size_) + "\n");
             write();
-            if (packets_received_ >= max_packets) {
+            if(packets_received_ >= max_packets && max_packets > 0) {
                 throw "reached max packets";
+            }
+            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+            if((now - start_time_).total_seconds() > timeout && timeout > 0) {
+                throw "reached timeout";
             }
         } else {
             receive();
