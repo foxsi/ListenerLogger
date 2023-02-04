@@ -242,13 +242,6 @@ void UDPListenerLogger::receive() {
             last_data_received_size_ = bytes_received;
             print_verbose_("got a packet of length " + std::to_string(last_data_received_size_) + "\n");
             write();
-            if(packets_received_ >= max_packets && max_packets > 0) {
-                throw "reached max packets";
-            }
-            boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
-            if((now - start_time_).total_seconds() > timeout && timeout > 0) {
-                throw "reached timeout";
-            }
         } else {
             receive();
         }
@@ -256,11 +249,33 @@ void UDPListenerLogger::receive() {
 }
 
 void UDPListenerLogger::write() {
-
+    
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
+    
+    // probably a much faster way to do all this
+    if(do_packetnum) {
+        const char* packets_received_charray = std::to_string(packets_received_).c_str();
+        file_.write(packets_received_charray, std::strlen(packets_received_charray));
+        file_.write(num_delimiter.c_str(), std::strlen(num_delimiter.c_str()));
+    } 
+    if(do_timestamp) {
+        std::string timestamp_string = boost::posix_time::to_simple_string(now);
+        const char* timestamp_charray = timestamp_string.c_str();
+        file_.write(timestamp_charray, std::strlen(timestamp_charray));
+        file_.write(time_delimiter.c_str(), std::strlen(time_delimiter.c_str()));
+    }
     file_.write(last_data_received_, last_data_received_size_);
+    
     memset(last_data_received_, 0, BUFF_SIZE);
     
     ++packets_written_;
+
+    if(packets_received_ >= max_packets && max_packets > 0) {
+        throw "reached max packets";
+    }
+    if((now - start_time_).total_seconds() > timeout && timeout > 0) {
+        throw "reached timeout";
+    }
     print_verbose_("wrote a packet\n");
     receive();
 }
