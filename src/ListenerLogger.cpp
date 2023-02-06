@@ -7,36 +7,41 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/program_options/parsers.hpp>
 
-// #include <boost/date_time/posix_time/posix_time.hpp>
-
 UDPListenerLogger::UDPListenerLogger(boost::program_options::options_description desc, boost::program_options::variables_map vm, boost::asio::io_context& io_context): local_socket_(io_context) {
     
     // configure object based on variables_map
     UDPListenerLogger::configure(desc, vm, io_context);
         // inside, opens file_ and tries to bind to socket_ constructed from address and port
     
+    // default packet delimiter CHANGE LATER
     packet_delimiter = "\n";
+    // initialize tracking variables for summary info on exit
     packets_received_ = 0;
     packets_written_ = 0;
     bytes_received_ = 0;
 
+    // send the startup message to remote machine, if doing that
     if(do_startup_message) {
         print_verbose_("sending startup message\n");
         UDPListenerLogger::send(startup_message.c_str());
     }
 
+    // start timer, then start receiving and writing
     start_time_ = boost::posix_time::microsec_clock::local_time();
     UDPListenerLogger::receive();
-
-    // do_logging();
 }
 
 UDPListenerLogger::~UDPListenerLogger() {
+    // stop the timer
     end_time_ = boost::posix_time::microsec_clock::local_time();
     std::cout << "collected for " << (end_time_ - start_time_).total_seconds() << " seconds\n";
+
+    // stop any async traffic on the socket:
+    local_socket_.cancel();
+
     // generate summary statistics, if requested
     if(do_summary){
-        // maybe read back the file? get stats
+        // report some basic stats on collection and logging
         std::cout << "\nSummary:\n";
         std::cout << "\treceived " << std::to_string(packets_received_) << " packets\n";
         std::cout << "\twrote " << std::to_string(packets_written_) << " packets\n";
@@ -59,18 +64,23 @@ UDPListenerLogger::~UDPListenerLogger() {
 
 void UDPListenerLogger::configure(boost::program_options::options_description desc, boost::program_options::variables_map vm, boost::asio::io_context& io_context) {
 
+    // check if there is a config file to use
     if(vm.count("config")) {
         print_verbose_("found config file\n");
         std::string config_filename = vm["config"].as<std::string>();
         boost::program_options::store(boost::program_options::parse_config_file(config_filename.c_str(), desc), vm);
     }
+    // update the variables map
     boost::program_options::notify(vm);
 
+    // if caller wants help, print it and exit.
     if(vm.count("help")) {
         // cout stuff
         std::cout << HELP_MESSAGE;
         throw "got help, ending";
     }
+
+    // if caller wants version number, print it and exit.
     if(vm.count("version")) {
         std::string version = std::to_string(VERSION_MAJOR) 
             + "." + std::to_string(VERSION_MINOR)
@@ -78,11 +88,14 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         std::cout << version + "\n";
         throw "got version, ending";
     }
+
+    // if caller wants verbose output, turn it on.
     if(vm.count("verbose")) {
         do_verbose = true;
         print_verbose_("verbose output on\n");
     }
 
+    // check if caller provided local machine's IP address, else use default address.
     std::string ip;
     if(vm.count("local-ip")) {
         ip = vm["local-ip"].as<std::string>();
@@ -109,11 +122,10 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         local_socket_.open(boost::asio::ip::udp::v4());
         local_socket_.bind(local_endpoint_);
     } catch (std::exception& e) {
-        // std::cerr << "Exception: " << e.what() << "\n";
-        // throw e.what();
         throw "couldn't open or bind local socket";
     }
 
+    // if caller wants to send message to remote, set up remote (using default IP and port if none provided).
     if(vm.count("message")) {
         do_startup_message = true;
         startup_message = vm["message"].as<std::string>();
@@ -142,18 +154,15 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         do_startup_message = false;
     }
 
+    // if caller provided log file name, use it. Otherwise, make a new file with timestamp name.
     if(vm.count("file")) {
         filename = vm["file"].as<std::string>();
     } else {
-        // make a new file, name it
-        // current time, 1-s resolution
+        // make a new file, name it with current datetime
         boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
         boost::gregorian::date today = now.date();
 
-        // std::string now_string = format_time_(now);
-
         std::string now_string = boost::posix_time::to_simple_string(now);
-        now_string.find(" ");
 
         std::string prefix = "UDPlog_";
         std::string suffix = ".log";
@@ -165,10 +174,12 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
     // check if the log file exists. 
     bool file_exists = std::filesystem::exists(filename);
     if(file_exists) {
+        // if it exists, append to it.
         appending_ = true;
         file_.open(filename, std::ios::out | std::ios::app | std::ios::binary);
         print_verbose_("file already exists, opening\n");
     } else {
+        // if it doesn't exist, open it fresh.
         appending_ = false;
         file_.open(filename, std::ios::out  | std::ios::binary);
         print_verbose_("opening new file\n");
@@ -182,7 +193,7 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         throw "couldn't open file";
     }
 
-    // more CLI options:
+    // if caller wants application to time out, define timeout delay. 
     if(vm.count("timeout")) {
         timeout = vm["timeout"].as<unsigned long>();
         print_verbose_("will timeout after ");
@@ -191,6 +202,8 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
     } else {
         timeout = 0;
     }
+    
+    // if caller wants application to stop after some number of packets received, set that up.
     if(vm.count("numpacks")) {
         // similar thing to timeout
         max_packets = vm["numpacks"].as<std::size_t>();
@@ -200,6 +213,8 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
     } else {
         max_packets = 0;
     }
+
+    // if caller wants packet numbering turned on in log file, turn it on and delimit the number in the log file.
     if(vm.count("line")) {
         do_packetnum = true;
         num_delimiter = vm["line"].as<std::string>();
@@ -207,6 +222,8 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
     } else {
         do_packetnum = false;
     }
+
+    // if caller wants timestamping turned on in log file, turn it on and delimit the timestamp in the log file.
     if(vm.count("timestamp")) {
         do_timestamp = true;
         time_delimiter = vm["timestamp"].as<std::string>();
@@ -215,28 +232,30 @@ void UDPListenerLogger::configure(boost::program_options::options_description de
         do_timestamp = false;
     }
 
+    // if caller wants summary info printed after run, turn it on.
     if(vm.count("summary")) {
         do_summary = true;
         print_verbose_("will print a summary after\n");
     } else {
         do_summary = false;
     }
-
-    // global options
-    packet_delimiter = "\n";
 }
 
+// don't use this
 int UDPListenerLogger::do_logging() {
-    while (packets_received_ <= max_packets) {
-        receive();
-        write();
-    }
+    // while (packets_received_ <= max_packets) {
+        // receive();
+        // write();
+    // }
     return 0;
 }
 
+// receive data on local socket asynchronously. 
+// AFAIK, the writing is part of the same asynchronous thread because it is called from this async context.
 void UDPListenerLogger::receive() {
     local_socket_.async_receive_from(boost::asio::buffer(last_data_received_, BUFF_SIZE), local_endpoint_, [this](boost::system::error_code ec, std::size_t bytes_received) {
         if (!ec && bytes_received > 0) {
+            // if this was a good receive, increment relevant counters
             ++packets_received_;
             bytes_received_ += bytes_received;
             last_data_received_size_ = bytes_received;
@@ -248,6 +267,7 @@ void UDPListenerLogger::receive() {
     });
 }
 
+// write new data to disk. This method checks for timeouts and packet number overruns to stop application.
 void UDPListenerLogger::write() {
     
     boost::posix_time::ptime now = boost::posix_time::microsec_clock::local_time();
@@ -257,7 +277,7 @@ void UDPListenerLogger::write() {
         const char* packets_received_charray = std::to_string(packets_received_).c_str();
         file_.write(packets_received_charray, std::strlen(packets_received_charray));
         file_.write(num_delimiter.c_str(), std::strlen(num_delimiter.c_str()));
-    } 
+    }
     if(do_timestamp) {
         std::string timestamp_string = boost::posix_time::to_simple_string(now);
         const char* timestamp_charray = timestamp_string.c_str();
@@ -270,6 +290,7 @@ void UDPListenerLogger::write() {
     
     ++packets_written_;
 
+    // max_packets = 0 and timeout = 0 indicate that no packet number or time limit have been specified.
     if(packets_received_ >= max_packets && max_packets > 0) {
         throw "reached max packets";
     }
@@ -277,9 +298,12 @@ void UDPListenerLogger::write() {
         throw "reached timeout";
     }
     print_verbose_("wrote a packet\n");
+
+    // go back to receiving data.
     receive();
 }
 
+// send message to remote
 void UDPListenerLogger::send(const char* message) {
     local_socket_.send_to(
         boost::asio::buffer(message, std::strlen(message)), 
@@ -288,6 +312,7 @@ void UDPListenerLogger::send(const char* message) {
     print_verbose_("sent startup message to remote\n");
 }
 
+// verbose printing method
 void UDPListenerLogger::print_verbose_(std::string text) {
     if(do_verbose) {
         std::cout << text;
