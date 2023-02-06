@@ -24,12 +24,12 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/apps/etherlogger.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ListenerLogger.cpp)
 
-# Build the target "etherlogger" using source files
+# Build the target "listenerlogger" using source files
 add_executable(listenerlogger ${SOURCES})
 target_include_directories(
     listenerlogger 
     PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Link boost:
+# Link Boost:
 target_link_libraries(listenerlogger PRIVATE ${Boost_LIBRARIES})

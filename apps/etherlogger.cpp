@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     boost::program_options::options_description generic("Permitted options");
     generic.add_options()
         ("version",         "print version string")
-        ("verbose,v",       "print version string")
+        ("verbose,v",       "print verbose messages")
         ("help,h",          "send help message")
         ("summary,s",       "print summary stats")
         ("local-ip,I",      boost::program_options::value<std::string>(),   "local IP address to receive from")

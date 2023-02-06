@@ -285,7 +285,8 @@ void UDPListenerLogger::write() {
         file_.write(time_delimiter.c_str(), std::strlen(time_delimiter.c_str()));
     }
     file_.write(last_data_received_, last_data_received_size_);
-    
+    file_.write(packet_delimiter.c_str(), std::strlen(packet_delimiter.c_str()));
+
     memset(last_data_received_, 0, BUFF_SIZE);
     
     ++packets_written_;
