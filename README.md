@@ -10,7 +10,7 @@ Try:
 to see all the options. BUT I WILL WRITE MORE INFO HERE LATER!
 
 ## Examples
-I'll write some later on (maybe never)
+Check out the [examples folder here](examples/README.md).
 
 ## Dependencies
 - [cmake](https://cmake.org/cmake/help/latest/)
