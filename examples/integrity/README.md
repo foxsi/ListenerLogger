@@ -17,7 +17,10 @@ To run this test, do the following:
     2. At least when it was uploaded, that config is set up to read 65535 packets from the remote and terminate. This should take about 1 second.
     3. When that's done, run `examples/integrity/analysis.py` to get out a plot of the number of packets received vs. time, and a plot of the delta between received packet values. The second plot should start at zero, then be a constant line at 1.0.
 
-In the future, I would like to set this up so that the Python script runs everything for you, then checks results.
+Example results look like this:
+![Error-free link test](../assets/feb6-2023-better_integrity_test_data.png?raw=true "Link test without error")
+
+In the future, I would like to set this up so that the Python script runs everything for you, then checks results. Maybe using [Fabric](https://docs.fabfile.org/en/stable/getting-started.html) to run stuff on the remote machine.
 
 ## More info
 

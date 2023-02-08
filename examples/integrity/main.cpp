@@ -25,33 +25,39 @@ unsigned short nearest_uint_length(unsigned short len) {
     return result;
 }
 
+// increment bitset
+bool increment(boost::dynamic_bitset<>& bits) {
+    for(int loop = 0; loop < bitset.count(); ++loop) {
+        if ((bitset[loop] ^= 0x1) == 0x1){
+            return false;
+        }
+    }
+    return true;
+}
 
+// enumerate all bitstrings of length len, and send them
 void enum_sender(
     const unsigned short len, 
     boost::asio::ip::udp::socket& socket, 
     boost::asio::ip::udp::endpoint endpoint) {
     
-    // assumes len has been nearest_uint_length'd already
-    unsigned short nblocks = len/2;
+    unsigned long long out_counter = 0;
 
-    if(len > 64) {
-        std::cout << "still working on length of message, make it less than 64 for now\n";
-        exit(1);
-    }
-    
-    const unsigned long loop_len = std::numeric_limits<unsigned short>::max(); 
-    std::cout << "sending " << std::to_string(loop_len) << " packets\n";
-    int out_counter = 0;
-    for(unsigned long long i = 0; i < loop_len; i++) {
-        // std::string out = std::bitset<len>(i).to_string();
+    bool no_overflow = true;
+    boost::dynamic_bitset<> bits(len, 0);
+    unsigned long long perms = 1LL << len;
+    std::cout << "sending " << std::to_string(perms) << " packets\n";
+
+    while(no_overflow) {
         
-        const boost::dynamic_bitset<> bits(len, i);
         std::string out;
         to_string(bits, out);
         const char* out_cstring = out.c_str();
 
         // now send it
         socket.send_to(boost::asio::buffer(out_cstring, std::strlen(out_cstring)), endpoint);
+        no_overflow = increment(bits);
+        
         out_counter++;
     }
     std::cout << "sent " << std::to_string(out_counter) << " packets\n";
