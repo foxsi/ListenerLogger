@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
     boost::program_options::options_description generic("Permitted options");
     generic.add_options()
         ("verbose,v",                                                           "print verbose messages")
-        ("length,l",        boost::program_options::value<unsigned short>(),    "length of message to transmit (in bytes)")
+        ("length,l",        boost::program_options::value<unsigned short>(),    "length of message to transmit (in bits)")
         ("trigger,t",       boost::program_options::value<std::string>(),       "trigger string to start sending")
         ("local-ip,I",      boost::program_options::value<std::string>(),       "local IP to receive and bind")
         ("local-port,P",    boost::program_options::value<unsigned short>(),    "local port to receive and bind")
