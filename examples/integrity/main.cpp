@@ -25,12 +25,14 @@ unsigned short nearest_uint_length(unsigned short len) {
     return result;
 }
 
-// increment bitset
+// increment bitset. boolean output tells if the bitset overflows on increment.
 bool increment(boost::dynamic_bitset<>& bits) {
-    for(int loop = 0; loop < bitset.count(); ++loop) {
-        if ((bitset[loop] ^= 0x1) == 0x1){
+    for(std::size_t loop = 0; loop < bits.size(); ++loop) {
+        if (bits[loop] == false) {
+            bits.set(loop, true);
             return false;
         }
+        bits.set(loop, false);
     }
     return true;
 }
@@ -43,20 +45,19 @@ void enum_sender(
     
     unsigned long long out_counter = 0;
 
-    bool no_overflow = true;
-    boost::dynamic_bitset<> bits(len, 0);
+    bool overflow = false;
+    boost::dynamic_bitset<> bits(len, (unsigned long)0);
     unsigned long long perms = 1LL << len;
     std::cout << "sending " << std::to_string(perms) << " packets\n";
 
-    while(no_overflow) {
-        
+    while(!overflow) {
         std::string out;
-        to_string(bits, out);
+        boost::to_string(bits, out);
         const char* out_cstring = out.c_str();
 
         // now send it
         socket.send_to(boost::asio::buffer(out_cstring, std::strlen(out_cstring)), endpoint);
-        no_overflow = increment(bits);
+        overflow = increment(bits);
         
         out_counter++;
     }
