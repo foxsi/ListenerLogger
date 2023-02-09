@@ -33,7 +33,7 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 % cd build
 % cmake ..
 % make
-````
+```
 
 8. Now you can run the executable (from the folder `ListenerLogger`) with
 
@@ -48,6 +48,7 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 ```
 
 where the config file (like [this one](https://github.com/foxsi/ListenerLogger/blob/main/sample_config.cfg)) stores values of each argument you want to set. So you can put things like:
+
 ```
 verbose=true
 file=my_log_file.log
@@ -55,8 +56,24 @@ file=my_log_file.log
 to turn verbose output on and set the path to the output log file.
 
 ## Flow
+
 When called, things happen in this order:
 1. Try to open a local socket to the supplied IP address and port. If none are supplied, the default is IP is 127.0.0.1 and the default port is 9999. 
 2. Try to bind to the socket. The operating system will throw an exception if the IP and port pair cannot be opened or bound.
 3. Try to open the log file. If no file name is provided, a new file will be created in this directory with name `UDPLog_YYYY-MM-DD HH:MM:SS.log`.
 4. Listen for incoming packets and write them to the log file.
+
+## Networking notes
+
+- Two machines are connected by an Ethernet cable. 
+    - There is no USB converter inline. The Ethernet cable goes from RJ45 to RJ45.
+- Each machine has an IP address that you can find with `% ifconfig` or System Preferences or `$ hostname -I` (or a dozen other options).
+- On a given machine, a socket should `open` and `bind` to its own IP address. Then, it should `send_to` or `receive_from` a remote IP address. This is for UDP. For TCP, a local socket bound to the local machine IP address can then `connect` to the remote IP.
+- Things are easier if wifi is disabled on both the local and remote machines (GSE and Formatter).
+- Things are easier if neither machine is connected to the broader internet. 
+- To configure network settings on both machines, do this:
+    - Set static IP addresses on both; some local network like 192.168.1.XXX is good. 
+    - Set subnet mask on both to 255.255.255.0
+    - Set router on both to 192.168.1.254
+- If it is necessary for the GSE-like machine to connect to the internet over Ethernet (not the Raspberry Pi though), do this:
+    - In System Preferences/Network, add an Ethernet 
