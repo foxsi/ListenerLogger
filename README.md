@@ -7,7 +7,25 @@ Try:
 ```
 % ./listenerlogger --help
 ```
-to see all the options. BUT I WILL WRITE MORE INFO HERE LATER!
+to see all the options. Here's some info on the options:
+
+| Command | Short version | Arguments | Description |
+| --- | --- | --- | --- |
+| `--help`      | `-h`  |           | Print help message and exit. |
+| `--version`   |       |           | Print version number and exit. |
+| `--verbose`   | `-v`  |           | Turn verbose output messages on. |
+| `--summary`   | `-s`  |           | Print summary statistics from transfer on exit. |
+| `--config`    | `-c`  | `<path to config file>` | Read these options from an [INI-style](https://en.wikipedia.org/wiki/INI_file) config file instead of typing them all in here. Note: do not use INI headers in the file. Strings will be used as is---only put quotes if you want quotes in the command argument you're passing. |
+| `--local-ip`  | `-I`  | `<IP address>` | Local machine's IP address, to monitor for incoming UDP packets. Defaults to loopback address `127.0.0.1`. |
+| `--local-port`| `-P`  | `<port number>`| Port number on local machine to monitor for incoming UDP packets. Defaults to `9999`. Avoid assigning `0` to `1024`; they're reserved. |
+| `--remote-ip`  | `-i`  | `<IP address>` | Remote machine's IP address, only used if sending `--message` on startup. Defaults to loopback address `127.0.0.1`. |
+| `--remote-port`| `-p`  | `<port number>`| Remote machine's port number, only used if sending `--message` on startup. Defaults to `9999`. Avoid assigning `0` to `1024`; they're reserved. |
+| `--message`   | `-m`  | `<message string>` | Message to send on startup to specified `--remote-ip` and `--remote-port`, sent before logging begins. Messages with spaces can be put in `--config` file, but not assigned in command prompt. |
+| `--timeout`   | `-T`  | `<number of seconds>` | Stop logging packets and exit after specified number of seconds elapsed. Must be integer. |
+| `--numpacks`  | `-n`  | `<number of packets>` | Stop logging packets and exit after specified number of packets has been written. Must be integer. |
+| `--file`      | `-f`  | `<path to file>`  | Path to log file. If file already exists, will append to it. Will write in binary format, so prior encoding may be messed up. |
+| `--line`      | `-l`  | `<delimiter string>` | Turn on line numbering in log file. Provide a string to separate the line number from the timestamp or packet contents. |
+| `--timestamp` | `-t`  | `<delimiter string>` | Turn on timestamping in log file. Will timestamp machine's POSIX time, down to milliseconds. Provide a string to separate the timestamp from the packet contents. |
 
 ## Examples
 Check out the [examples folder here](examples/README.md).
@@ -71,9 +89,11 @@ When called, things happen in this order:
 - On a given machine, a socket should `open` and `bind` to its own IP address. Then, it should `send_to` or `receive_from` a remote IP address. This is for UDP. For TCP, a local socket bound to the local machine IP address can then `connect` to the remote IP.
 - Things are easier if wifi is disabled on both the local and remote machines (GSE and Formatter).
 - Things are easier if neither machine is connected to the broader internet. 
-- To configure network settings on both machines, do this:
+- So that both machines can talk to each other over Ethernet, configure their network settings like this:
     - Set static IP addresses on both; some local network like 192.168.1.XXX is good. 
     - Set subnet mask on both to 255.255.255.0
     - Set router on both to 192.168.1.254
+    - Disable WAN/wifi interface
 - If it is necessary for the GSE-like machine to connect to the internet over Ethernet (not the Raspberry Pi though), do this:
-    - In System Preferences/Network, add an Ethernet 
+    - In System Preferences/Network, add an Ethernet service (name it what you want) with the IP/subnet/router/DNS/etc settings for your internet service.
+    - Then, to prioritize _this_ interface for internet stuff, on macOS click the three dots on the System Preferences/Network settings page and select "Set Service Order...". Put the internet Ethernet service you just set up first (before the Ethernet service for talkint to the remote machine with static local IP).
