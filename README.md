@@ -36,9 +36,9 @@ Check out the [examples folder here](examples/README.md).
 - [boost/program_options](https://www.boost.org/doc/libs/1_81_0/doc/html/program_options.html)
 - [boost/date_time](https://www.boost.org/doc/libs/1_81_0/doc/html/date_time.html)
 
-## Getting started (for development)
+## Getting started
 ### For macOS
-The following takes place at the command prompt: `% `. Assuming you're starting from scratch, do this:
+The following takes place at the command prompt: `% `. Assuming you're starting from scratch and need to build an executable on your system, do this:
 1. If you recently updated macOS, run `% xcode-select --install`. This will give you git back after your update. This command will error (good!) if you already have the tools installed. 
 2. Do you have a package manager installed? You can get [homebrew here](https://brew.sh/) or [MacPorts here](https://www.macports.org/).
 3. Use your package manager to install cmake. For example, `% brew install cmake`.
