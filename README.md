@@ -55,13 +55,13 @@ The following takes place at the command prompt: `% `. Assuming you're starting 
 
 8. Now you can run the executable (from the folder `ListenerLogger`) with
 
-```
+```bash
 % ./bin/listenerlogger --<options> [arguments]
 ```
 
 9. If you don't like typing in so many arguments every time you run, you can also run like this:
 
-```
+```bash
 % ./bin/listenerlogger --config path/to/config/file
 ```
 
